@@ -62,16 +62,26 @@ if submitted:
             st.error("No response from backend.")
         elif response.status_code == 200:
             data = response.json()
-            prediction = int(data.get("prediction", 0))
-            probability = float(data.get("probability", 0.0))
-            risk_level = str(data.get("risk_level", "Unknown"))
-            probability_pct = probability * 100.0
+            prediction = int(data.get("prediction", data.get("label", 0)))
+            probability = data.get("probability")
+            risk_level = data.get("risk_level")
 
             st.success("Prediction successful")
-            if prediction == 1:
-                st.markdown(f"### Result: High likelihood of diabetes ({probability_pct:.2f}%)")
+            if probability is not None:
+                probability = float(probability)
+                probability_pct = probability * 100.0
+                if prediction == 1:
+                    st.markdown(f"### Result: High likelihood of diabetes ({probability_pct:.2f}%)")
+                else:
+                    st.markdown(f"### Result: Low likelihood of diabetes ({probability_pct:.2f}%)")
             else:
-                st.markdown(f"### Result: Low likelihood of diabetes ({probability_pct:.2f}%)")
+                if prediction == 1:
+                    st.markdown("### Result: High likelihood of diabetes")
+                else:
+                    st.markdown("### Result: Low likelihood of diabetes")
+
+            if risk_level is None:
+                risk_level = "High" if prediction == 1 else "Low"
             st.write(f"Risk level: {risk_level}")
         else:
             st.error(f"Request failed: HTTP {response.status_code}")
