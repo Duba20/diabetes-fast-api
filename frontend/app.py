@@ -1,0 +1,83 @@
+import os
+import time
+from typing import List
+
+import requests
+import streamlit as st
+
+
+DEFAULT_BACKEND_URL = os.getenv("BACKEND_URL", "https://diabetes-ml-api.onrender.com")
+BASE_DEFAULT_VALUES: List[float] = [6, 148, 72, 35, 0, 33.6, 0.627, 50]
+FEATURE_NAMES_8: List[str] = [
+    "Pregnancies",
+    "Glucose",
+    "BloodPressure",
+    "SkinThickness",
+    "Insulin",
+    "BMI",
+    "DiabetesPedigreeFunction",
+    "Age",
+]
+
+st.set_page_config(page_title="Diabetes Predictor", page_icon=":hospital:", layout="centered")
+st.title("Diabetes Prediction UI")
+st.caption("Streamlit frontend connected to ML FastAPI backend")
+
+backend_url = st.text_input(
+    "Backend URL",
+    value=DEFAULT_BACKEND_URL,
+    help="Example: https://diabetes-fast-api.onrender.com",
+).rstrip("/")
+
+with st.form("predict_form"):
+    st.subheader("Input Features")
+    features: List[float] = []
+    for idx in range(8):
+        features.append(
+            st.number_input(
+                FEATURE_NAMES_8[idx],
+                value=float(BASE_DEFAULT_VALUES[idx]),
+                step=0.1,
+                format="%.6f",
+            )
+        )
+    submitted = st.form_submit_button("Predict")
+
+if submitted:
+    try:
+        payload = {"features": features}
+        response = None
+        for _ in range(3):
+            response = requests.post(f"{backend_url}/predict", json=payload, timeout=30)
+            if response.status_code not in (502, 503, 504):
+                break
+            time.sleep(2)
+
+        if response is None:
+            st.error("No response from backend.")
+        elif response.status_code == 200:
+            data = response.json()
+            prediction = int(data.get("prediction", 0))
+            probability = float(data.get("probability", 0.0))
+            risk_level = str(data.get("risk_level", "Unknown"))
+            probability_pct = probability * 100.0
+
+            st.success("Prediction successful")
+            if prediction == 1:
+                st.markdown(f"### Result: High likelihood of diabetes ({probability_pct:.2f}%)")
+            else:
+                st.markdown(f"### Result: Low likelihood of diabetes ({probability_pct:.2f}%)")
+            st.write(f"Risk level: {risk_level}")
+        else:
+            st.error(f"Request failed: HTTP {response.status_code}")
+            try:
+                st.json(response.json())
+            except Exception:
+                st.code(response.text[:1000] or "No response body")
+    except Exception as exc:
+        st.error(f"Could not connect to backend: {str(exc)}")
+
+st.divider()
+st.write("Quick links")
+st.markdown(f"- API docs: {backend_url}/docs")
+st.markdown(f"- Health: {backend_url}/health")
