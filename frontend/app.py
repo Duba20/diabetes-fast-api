@@ -46,12 +46,17 @@ with st.form("predict_form"):
 if submitted:
     try:
         payload = {"features": features}
+        named_payload = {FEATURE_NAMES_8[i]: float(features[i]) for i in range(8)}
         response = None
         for _ in range(3):
             response = requests.post(f"{backend_url}/predict", json=payload, timeout=30)
             if response.status_code not in (502, 503, 504):
                 break
             time.sleep(2)
+
+        # Fallback for backends that expect named fields instead of `features`.
+        if response is not None and response.status_code == 422:
+            response = requests.post(f"{backend_url}/predict", json=named_payload, timeout=30)
 
         if response is None:
             st.error("No response from backend.")
