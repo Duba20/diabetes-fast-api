@@ -6,7 +6,7 @@ import requests
 import streamlit as st
 
 
-DEFAULT_BACKEND_URL = os.getenv("BACKEND_URL", "https://diabetes-ml-api-e8kd.onrender.com")
+DEFAULT_BACKEND_URL = os.getenv("BACKEND_URL", "https://diabetes-fast-api-5.onrender.com")
 BASE_DEFAULT_VALUES: List[float] = [6, 148, 72, 35, 0, 33.6, 0.627, 50]
 FEATURE_NAMES_8: List[str] = [
     "Pregnancies",
