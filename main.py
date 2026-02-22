@@ -18,6 +18,7 @@ EXPECTED_FEATURE_COUNT = 8
 LEGACY_FEATURE_COUNT = 8
 model = None
 model_load_error = None
+RENDER_COMMIT = os.getenv("RENDER_GIT_COMMIT", "unknown")
 
 
 def build_example_features(feature_count: int) -> List[float]:
@@ -260,6 +261,7 @@ async def root():
         "version": "1.1.0",
         "docs": "/docs",
         "redoc": "/redoc",
+        "build_commit": RENDER_COMMIT,
     }
 
 
@@ -270,6 +272,7 @@ async def health_check():
         "model_loaded": model is not None,
         "model_load_error": model_load_error,
         "expected_feature_count": EXPECTED_FEATURE_COUNT,
+        "build_commit": RENDER_COMMIT,
     }
 
 
