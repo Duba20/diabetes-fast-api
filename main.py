@@ -284,7 +284,10 @@ async def predict(input_data: PredictionInput):
         require_model_loaded()
         features = np.array(input_data.features, dtype=np.float32).reshape(1, -1)
         prediction = model.predict(features, verbose=0)
-        probability = float(prediction[0][0])
+        prediction_values = np.asarray(prediction, dtype=np.float32).reshape(-1)
+        if prediction_values.size == 0:
+            raise ValueError("Model returned an empty prediction array")
+        probability = float(prediction_values[0])
         prediction_class = int(round(probability))
 
         return PredictionResponse(
@@ -311,7 +314,11 @@ async def predict_batch(batch_input: BatchPredictionInput):
         require_model_loaded()
         features = np.array(batch_input.data, dtype=np.float32)
         predictions = model.predict(features, verbose=0)
-        probabilities = [float(p[0]) for p in predictions]
+        prediction_values = np.asarray(predictions, dtype=np.float32)
+        if prediction_values.ndim == 1:
+            probabilities = [float(p) for p in prediction_values]
+        else:
+            probabilities = [float(p[0]) for p in prediction_values]
         prediction_classes = [int(round(p)) for p in probabilities]
         risk_levels = [get_risk_level(p) for p in probabilities]
 
@@ -340,9 +347,11 @@ async def predict_probability(input_data: PredictionInput):
         require_model_loaded()
         features = np.array(input_data.features, dtype=np.float32).reshape(1, -1)
         prediction = model.predict(features, verbose=0)
+        prediction_values = np.asarray(prediction, dtype=np.float32)
+        prediction_class = int(round(float(prediction_values.reshape(-1)[0])))
         return ProbabilityResponse(
-            probabilities=prediction.tolist(),
-            predicted_class=int(round(prediction[0][0])),
+            probabilities=prediction_values.tolist(),
+            predicted_class=prediction_class,
         )
     except HTTPException:
         raise
