@@ -48,15 +48,30 @@ if submitted:
         payload = {"features": features}
         named_payload = {FEATURE_NAMES_8[i]: float(features[i]) for i in range(8)}
         response = None
-        for _ in range(3):
-            response = requests.post(f"{backend_url}/predict", json=payload, timeout=30)
-            if response.status_code not in (502, 503, 504):
-                break
-            time.sleep(2)
+
+        def post_with_backoff(json_payload: dict) -> requests.Response | None:
+            resp = None
+            for attempt in range(4):
+                resp = requests.post(f"{backend_url}/predict", json=json_payload, timeout=30)
+                if resp.status_code == 429:
+                    retry_after = resp.headers.get("Retry-After")
+                    if retry_after and retry_after.isdigit():
+                        wait_seconds = max(1, int(retry_after))
+                    else:
+                        wait_seconds = 2 * (attempt + 1)
+                    time.sleep(wait_seconds)
+                    continue
+                if resp.status_code in (502, 503, 504):
+                    time.sleep(2 * (attempt + 1))
+                    continue
+                return resp
+            return resp
+
+        response = post_with_backoff(payload)
 
         # Fallback for backends that expect named fields instead of `features`.
         if response is not None and response.status_code == 422:
-            response = requests.post(f"{backend_url}/predict", json=named_payload, timeout=30)
+            response = post_with_backoff(named_payload)
 
         if response is None:
             st.error("No response from backend.")
@@ -85,6 +100,8 @@ if submitted:
             st.write(f"Risk level: {risk_level}")
         else:
             st.error(f"Request failed: HTTP {response.status_code}")
+            if response.status_code == 429:
+                st.info("The backend is rate-limiting requests. Please wait a few seconds and try again.")
             try:
                 st.json(response.json())
             except Exception:
