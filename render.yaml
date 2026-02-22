@@ -21,4 +21,4 @@ services:
       - key: PYTHON_VERSION
         value: 3.11.11
       - key: BACKEND_URL
-        value: https://diabetes-fast-api.onrender.com
+        value: http://diabetes-fast-api:10000
