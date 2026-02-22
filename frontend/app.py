@@ -51,27 +51,25 @@ if submitted:
 
         def post_with_backoff(json_payload: dict) -> requests.Response | None:
             resp = None
-            for attempt in range(4):
+            for attempt in range(2):
                 resp = requests.post(f"{backend_url}/predict", json=json_payload, timeout=30)
                 if resp.status_code == 429:
                     retry_after = resp.headers.get("Retry-After")
                     if retry_after and retry_after.isdigit():
                         wait_seconds = max(1, int(retry_after))
                     else:
-                        wait_seconds = 2 * (attempt + 1)
+                        wait_seconds = 3 * (attempt + 1)
                     time.sleep(wait_seconds)
-                    continue
-                if resp.status_code in (502, 503, 504):
-                    time.sleep(2 * (attempt + 1))
                     continue
                 return resp
             return resp
 
-        response = post_with_backoff(payload)
+        # Prefer named payload first to match your current ML backend schema and avoid extra 422 round-trips.
+        response = post_with_backoff(named_payload)
 
-        # Fallback for backends that expect named fields instead of `features`.
+        # Fallback for backends that expect `features` instead of named fields.
         if response is not None and response.status_code == 422:
-            response = post_with_backoff(named_payload)
+            response = post_with_backoff(payload)
 
         if response is None:
             st.error("No response from backend.")
