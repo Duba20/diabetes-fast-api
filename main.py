@@ -5,10 +5,12 @@ import shutil
 
 from fastapi import FastAPI, HTTPException
 from fastapi.openapi.utils import get_openapi
+from fastapi.responses import JSONResponse
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 import h5py
 from tensorflow import keras
+import traceback
 
 
 MODEL_PATH = "diabetes_model.h5"
@@ -33,6 +35,18 @@ app = FastAPI(
         {"name": "prediction", "description": "Single and batch prediction endpoints"},
     ],
 )
+
+
+@app.exception_handler(Exception)
+async def unhandled_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": f"Unhandled error: {str(exc)}",
+            "error_type": type(exc).__name__,
+            "traceback_tail": traceback.format_exc().splitlines()[-5:],
+        },
+    )
 
 def infer_expected_feature_count(model_path: str, fallback: int = 8) -> int:
     if not os.path.exists(model_path):
