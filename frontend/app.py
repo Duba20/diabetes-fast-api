@@ -31,7 +31,6 @@ backend_url = st.text_input(
 
 with st.form("predict_form"):
     st.subheader("Input Features")
-    user_id_input = st.number_input("User ID", min_value=1, value=1, step=1, format="%d")
     features: List[float] = []
     for idx in range(8):
         features.append(
@@ -46,11 +45,8 @@ with st.form("predict_form"):
 
 if submitted:
     try:
-        user_id_value = int(user_id_input)
-
-        payload = {"user_id": user_id_value, "features": features}
-        named_payload = {"user_id": user_id_value}
-        named_payload.update({FEATURE_NAMES_8[i]: float(features[i]) for i in range(8)})
+        payload = {"features": features}
+        named_payload = {FEATURE_NAMES_8[i]: float(features[i]) for i in range(8)}
         response = None
 
         def post_with_backoff(json_payload: dict) -> requests.Response | None:
