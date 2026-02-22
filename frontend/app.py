@@ -6,7 +6,7 @@ import requests
 import streamlit as st
 
 
-DEFAULT_BACKEND_URL = os.getenv("BACKEND_URL", "http://diabetes-fast-api:10000")
+DEFAULT_BACKEND_URL = os.getenv("BACKEND_URL", "https://diabetes-fast-api-8.onrender.com")
 BASE_DEFAULT_VALUES: List[float] = [6, 148, 72, 35, 0, 33.6, 0.627, 50]
 FEATURE_NAMES_8: List[str] = [
     "Pregnancies",
@@ -26,7 +26,7 @@ st.caption("Streamlit frontend connected to FastAPI backend")
 backend_url = st.text_input(
     "Backend URL",
     value=DEFAULT_BACKEND_URL,
-    help="Use Render internal URL for production, e.g. http://diabetes-fast-api:10000",
+    help="Use Render internal URL for production, e.g. https://diabetes-fast-api-8.onrender.com",
 ).rstrip("/")
 
 with st.form("predict_form"):
